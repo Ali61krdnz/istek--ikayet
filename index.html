@@ -98,20 +98,19 @@
     }
 
     // ------------------ Uygulama Durumu ------------------
-    const state = {
-      db: initializeDatabase(),
-      currentUserId: 1, // Admin
-      activeTab: 'dashboard',
-      filterStatus: 'all',
-      showNewTicketModal: false,
-      newTicket: {
-        category_id: '',
-        title: '',
-        description: '',
-        priority: 'Medium'
-      }
-    };
-
+  const state = {
+  db: initializeDatabase(),
+  currentUserId: null,      // başlangıçta kimse giriş yapmamış
+  activeTab: 'dashboard',
+  filterStatus: 'all',
+  showNewTicketModal: false,
+  newTicket: {
+    category_id: '',
+    title: '',
+    description: '',
+    priority: 'Medium'
+  }
+};
     // ------------------ Yardımcı Fonksiyonlar ------------------
     function getCurrentUser() {
       return state.db.users.find(u => u.id === state.currentUserId);
@@ -121,6 +120,25 @@
       const block = state.db.blocks.find(b => b.id === blockId);
       return block ? block.block_name : '';
     }
+function loginAsRole(role) {
+  const user = state.db.users.find(u => u.role === role);
+  if (!user) {
+    alert(role + ' için kullanıcı tanımlı değil.');
+    return;
+  }
+  state.currentUserId = user.id;
+  state.activeTab = role === 'Resident' ? 'tickets' : 'dashboard';
+  render();
+}
+
+function logout() {
+  state.currentUserId = null;
+  state.activeTab = 'dashboard';
+  state.filterStatus = 'all';
+  state.showNewTicketModal = false;
+  state.newTicket = { category_id: '', title: '', description: '', priority: 'Medium' };
+  render();
+}
 
     function getApartmentInfo(aptId) {
       const apt = state.db.apartments.find(a => a.id === aptId);
@@ -190,6 +208,64 @@
       state.newTicket = { category_id: '', title: '', description: '', priority: 'Medium' };
       state.showNewTicketModal = false;
       render();
+      function render() {
+  const app = document.getElementById('app');
+  const currentUser = getCurrentUser();
+
+  // Eğer kimse giriş yapmadıysa, login ekranını göster
+  if (!currentUser) {
+    app.innerHTML = `
+      <div class="min-h-screen flex items-center justify-center bg-gray-100">
+        <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
+          <div class="flex items-center space-x-3 mb-6">
+            <div class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-2xl">
+              🏠
+            </div>
+            <div>
+              <h1 class="text-xl font-bold text-gray-900">Site Yönetim Sistemi</h1>
+              <p class="text-sm text-gray-500">Giriş Ekranı</p>
+            </div>
+          </div>
+
+          <p class="text-sm text-gray-600 mb-4">Giriş türünüzü seçin:</p>
+
+          <div class="space-y-3">
+            <button data-login-role="Admin"
+              class="w-full px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 text-sm font-medium">
+              Yönetici Olarak Giriş Yap
+            </button>
+            <button data-login-role="Staff"
+              class="w-full px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium">
+              Personel Olarak Giriş Yap
+            </button>
+            <button data-login-role="Resident"
+              class="w-full px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-medium">
+              Kullanıcı (Sakin) Olarak Giriş Yap
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    attachLoginEvents();  // butonlara click bağlayacağız
+    return; // aşağıdaki dashboard koduna inme
+ function attachLoginEvents() {
+  document.querySelectorAll('[data-login-role]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const role = btn.getAttribute('data-login-role');
+      loginAsRole(role);
+    });
+  });
+}
+
+  }
+
+  // ↓↓↓ senin mevcut dashboard/ticket/users kodun burada aynen devam etsin
+  // const analytics = getAnalytics();
+  // const filteredTickets = getFilteredTickets();
+  // ...
+}
+
     }
 
     function updateTicketStatus(ticketId, newStatus, assignedTo = null) {
@@ -770,5 +846,6 @@
   </script>
 </body>
 </html>
+
 
 
